@@ -2,7 +2,12 @@
     class App {
         private $__controller, $__action, $__params;
         public function __construct() {
-            $this->__controller = "home";
+            // khai báo dùng biến toàn cục là $routes, nó nằm ở ngoài hàm này, vì mặc định trong php,
+            // các biến ngoài hàm không thể truy cập bên trong hàm
+            global $routes;
+            if(!empty($routes["default_controller"])) {
+                $this->__controller = $routes["default_controller"];
+            }    
             $this->__action = "index";
             $this->__params = [];
             try {
@@ -34,8 +39,12 @@
             }
             if(file_exists('app/controllers/'.($this->__controller) . '.php')) {
                 require_once 'controllers/'.($this->__controller) . '.php';
-                $this->__controller = new $this->__controller(); // PHP cho phép khỏi tạo đối tượng với tên class có dạng chuỗi
-                unset($urlArray[0]); // Xóa biến, và nếu dùng như này thì là xóa phần tử trong mảng, nhưng nó không định lại index.
+                if(class_exists($this->__controller)) {
+                    $this->__controller = new $this->__controller(); // PHP cho phép khỏi tạo đối tượng với tên class có dạng chuỗi
+                    unset($urlArray[0]); // Xóa biến, và nếu dùng như này thì là xóa phần tử trong mảng, nhưng nó không định lại index.
+                } else {
+                    $this->loadError();
+                }
             } else {
                 // echo"$this->__controller";
                 throw new Exception('Error to open controller ' . ($this->__controller));
@@ -56,7 +65,14 @@
 
             // Có thể truyền vào 1 callback và mảng các tham số muốn truyền, còn nếu dùng cho class và đối tượng thì truyền 1 array
             // chứa đối tượng và phương thức muốn thực hiện, array thứ 2 là chứa các tham số muốn truyền
-            call_user_func_array([$this->__controller, $this->__action], $this->__params);
+
+            // Cần kiểm tra xem action muốn gọi có tồn tại bên trong controller hay không, thông qua hàm method_exists,
+            // nếu tồn tại thì thực thi hàm đó bằng call_user_func_array
+            if(method_exists($this->__controller, $this->__action)) {
+                call_user_func_array([$this->__controller, $this->__action], $this->__params);
+            } else {
+                $this->loadError();
+            }
         }
 
         public function loadError($name="404") {
