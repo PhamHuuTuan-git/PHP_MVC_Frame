@@ -1,0 +1,65 @@
+<?php
+    class App {
+        private $__controller, $__action, $__params;
+        public function __construct() {
+            $this->__controller = "home";
+            $this->__action = "index";
+            $this->__params = [];
+            try {
+                $this->handleUrl();
+            } catch (Exception $e) {
+                $this->loadError();
+            }
+        }
+
+        private function getUrl(): string {
+            $url = "/";
+            if(!empty($_SERVER["PATH_INFO"])) { // không dùng isset, vì empty check luôn có phải là "" hay không, còn isset chỉ check tồn tại và khác null
+                $url = $_SERVER["PATH_INFO"];
+            }
+            return $url;
+        }
+
+        public function handleUrl(): void {
+            $url = $this->getUrl();
+            // array_filter để lọc đi các phần tử là "", do quá trình tách chuỗi theo /
+            // array_values: đánh lại index cho nó, vì khi dùng array_filter bỏ đi nó sẽ bị không theo quy tắc index, cho nên cần sắp xếp lại
+            $urlArray = array_values(array_filter(explode("/", $url)));
+
+            // Xử lý các controller
+            if(!empty($urlArray[0])) {
+                $this->__controller = ucfirst($urlArray[0]); // ucfirst để viết hoa chữ cái đầu lên
+            } else {
+                $this->__controller = ucfirst($this->__controller);
+            }
+            if(file_exists('app/controllers/'.($this->__controller) . '.php')) {
+                require_once 'controllers/'.($this->__controller) . '.php';
+                $this->__controller = new $this->__controller(); // PHP cho phép khỏi tạo đối tượng với tên class có dạng chuỗi
+                unset($urlArray[0]); // Xóa biến, và nếu dùng như này thì là xóa phần tử trong mảng, nhưng nó không định lại index.
+            } else {
+                // echo"$this->__controller";
+                throw new Exception('Error to open controller ' . ($this->__controller));
+            }
+
+            // Xử lý các action
+            if(!empty($urlArray[1])) {
+                $this->__action = $urlArray[1];
+                unset($urlArray[1]);
+            }
+
+            // Xử lý params
+            $this->__params = array_values($urlArray);
+
+            // Hàm call_user_func_array() trong PHP được sử dụng để gọi một hàm hoặc phương thức với một danh sách đối số được 
+            // truyền dưới dạng mảng. Đây là hàm rất hữu ích khi bạn không biết trước số lượng tham số cần truyền vào hàm hoặc 
+            // bạn cần gọi hàm/method một cách động.
+
+            // Có thể truyền vào 1 callback và mảng các tham số muốn truyền, còn nếu dùng cho class và đối tượng thì truyền 1 array
+            // chứa đối tượng và phương thức muốn thực hiện, array thứ 2 là chứa các tham số muốn truyền
+            call_user_func_array([$this->__controller, $this->__action], $this->__params);
+        }
+
+        public function loadError($name="404") {
+            require_once "errors/" .$name . ".php";
+        }
+    }

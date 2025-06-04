@@ -1,0 +1,12 @@
+RewriteEngine On
+
+# Ví dụ nếu có thư mục là /images, và URL yêu cầu /images thì RewriteRule sẽ cho phép mở cái thư mục đó, còn nếu
+# không có dòng này thì chúng ta không thể mở trên url được
+RewriteCond %{REQUEST_FILENAME} !-d
+# giống với thư mục nhưng cái này áp dụng cho file 
+RewriteCond %{REQUEST_FILENAME} !-f 
+# RewriteCond %{REQUEST_FILENAME} !-l
+
+# (.+)  là một nhóm bắt (capture group) dùng để bắt bất kỳ ký tự nào (ít nhất 1 ký tự) cho tới hết chuỗi.
+# Bất kỳ URL nào không rỗng đều sẽ khớp và phần sau RewriteRule sẽ truy cập giá trị của (.+) thông qua biến $1.
+RewriteRule ^(.+)$ index.php/$1 [L,QSA]
